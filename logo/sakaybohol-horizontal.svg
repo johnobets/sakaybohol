@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1240" height="320" viewBox="0 0 1240 320" role="img" aria-label="SakayBohol">
+  <defs>
+    <clipPath id="tile-h"><rect x="16" y="16" width="288" height="288" rx="63"/></clipPath>
+  </defs>
+  <!-- icon, same drawing as sakaybohol-icon.svg at 288px -->
+  <g clip-path="url(#tile-h)">
+    <g transform="translate(16 16) scale(0.5625)">
+      <rect width="512" height="512" fill="#0F2A3D"/>
+      <g transform="translate(256 270) scale(1.25) translate(-256 -330)">
+        <path d="M226 372 C276 372 296 250 350 250 C404 250 424 372 474 372 Z" fill="#B97C4E"/>
+        <path d="M38 372 C92 372 112 234 172 234 C232 234 252 372 306 372 Z" fill="#7E4B2B"/>
+        <rect x="-100" y="372" width="712" height="300" fill="#0A1C29"/>
+        <path d="M150 560 C150 470 352 474 338 432 C326 398 214 414 228 374 C238 346 262 334 266 318" fill="none" stroke="#F6F4EE" stroke-width="30" stroke-linecap="round"/>
+        <path d="M150 560 C150 470 352 474 338 432 C326 398 214 414 228 374" fill="none" stroke="#0A1C29" stroke-width="4" stroke-dasharray="14 16" stroke-linecap="round"/>
+        <circle cx="266" cy="300" r="30" fill="#F59E42"/>
+        <circle cx="266" cy="300" r="11" fill="#0F2A3D"/>
+      </g>
+    </g>
+  </g>
+  <!-- wordmark: needs Space Grotesk installed; outline the text before final print -->
+  <text x="352" y="196" font-family="'Space Grotesk', 'Segoe UI', Arial, sans-serif" font-size="150" font-weight="700" letter-spacing="-5" fill="#0F2A3D">sakay<tspan fill="#C26414">bohol</tspan></text>
+  <text x="358" y="262" font-family="Inter, 'Segoe UI', Arial, sans-serif" font-size="34" font-weight="600" letter-spacing="7" fill="#4A5568">RIDE INFO FOR ALL OF BOHOL</text>
+</svg>

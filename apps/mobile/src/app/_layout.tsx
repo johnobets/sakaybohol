@@ -1,0 +1,16 @@
+import { Stack } from 'expo-router';
+
+import { colors } from '@/lib/theme';
+
+export default function RootLayout() {
+  return (
+    <Stack
+      screenOptions={{
+        headerStyle: { backgroundColor: colors.navy },
+        headerTintColor: colors.cream,
+      }}>
+      <Stack.Screen name="index" options={{ title: 'SakayBohol' }} />
+      <Stack.Screen name="crew" options={{ title: 'Crew mode' }} />
+    </Stack>
+  );
+}

@@ -1,0 +1,11 @@
+{
+  "name": "gps-simulator",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node simulate.mjs --selftest"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.119.2"
+  }
+}

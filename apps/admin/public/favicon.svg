@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="SakayBohol logo: a road winding between two Chocolate Hills to a stop marker">
+  <defs>
+    <clipPath id="tile"><rect width="512" height="512" rx="112"/></clipPath>
+  </defs>
+  <g clip-path="url(#tile)">
+    <rect width="512" height="512" fill="#0F2A3D"/>
+    <g transform="translate(256 270) scale(1.25) translate(-256 -330)">
+      <!-- back hill (farther, lighter) -->
+      <path d="M226 372 C276 372 296 250 350 250 C404 250 424 372 474 372 Z" fill="#B97C4E"/>
+      <!-- front hill -->
+      <path d="M38 372 C92 372 112 234 172 234 C232 234 252 372 306 372 Z" fill="#7E4B2B"/>
+      <!-- ground -->
+      <rect x="-100" y="372" width="712" height="300" fill="#0A1C29"/>
+      <!-- the road: an S that climbs into the valley between the hills -->
+      <path d="M150 560 C150 470 352 474 338 432 C326 398 214 414 228 374 C238 346 262 334 266 318" fill="none" stroke="#F6F4EE" stroke-width="30" stroke-linecap="round"/>
+      <path d="M150 560 C150 470 352 474 338 432 C326 398 214 414 228 374" fill="none" stroke="#0A1C29" stroke-width="4" stroke-dasharray="14 16" stroke-linecap="round"/>
+      <!-- the stop: where the bus will pass you -->
+      <circle cx="266" cy="300" r="30" fill="#F59E42"/>
+      <circle cx="266" cy="300" r="11" fill="#0F2A3D"/>
+    </g>
+  </g>
+</svg>
