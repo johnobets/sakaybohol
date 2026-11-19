@@ -8,7 +8,9 @@ apps/mobile/          Expo app: commuter mode and crew mode
 apps/admin/           Vite + React dashboard for the traffic office and Dao terminal
 supabase/migrations/  Database schema and Row Level Security
 supabase/seed.sql     Pilot routes and the Dao hub
+supabase/routes/      Route lines (GeoJSON) for the four pilot routes
 tools/gps-simulator/  Replays a recorded route as a live vehicle
+tools/route-builder/  Builds route lines from OpenStreetMap and turns them into SQL
 logo/                 App icon and horizontal logo
 ```
 
@@ -31,6 +33,13 @@ logo/                 App icon and horizontal logo
 | Simulate a bus | `node simulate.mjs path/to/route.geojson` |
 
 Background GPS and Android push need an EAS development build: `npx eas-cli@latest build --profile development --platform android`.
+
+## Route lines
+
+The four pilot routes in `supabase/routes/` are **approximate**: built from OpenStreetMap roads with
+`node tools/route-builder/build-routes.mjs`, not from a real bus or van. Replace each file with a recorded
+ride-along GPX (converted to GeoJSON) before the field pilot, then run `node tools/route-builder/to-sql.mjs`
+and paste the output into the Supabase SQL editor.
 
 ## Status
 
