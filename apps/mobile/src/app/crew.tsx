@@ -16,6 +16,15 @@ import {
 import { clampSeats, SEAT_LABEL, seatStatus } from '@/lib/seats';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
+import { useTripBroadcast, type GpsStatus } from '@/lib/useTripBroadcast';
+
+const GPS_LABEL: Record<GpsStatus, string> = {
+  off: 'GPS off',
+  starting: 'Finding your location…',
+  live: 'Sharing location',
+  denied: 'Location permission denied. Allow it in Settings to share your position.',
+  error: 'Could not start GPS. Close and reopen the app.',
+};
 
 type Vehicle = { id: string; plate_no: string; type: string; capacity: number };
 type RouteOption = { id: string; code: string; name: string };
@@ -102,6 +111,20 @@ function CrewHome({ userId }: { userId: string }) {
   const [direction, setDirection] = useState<Direction>('outbound');
   const [busy, setBusy] = useState(false);
 
+  const gps = useTripBroadcast(
+    trip && vehicle
+      ? {
+          tripId: trip.id,
+          routeId: trip.route_id,
+          direction: trip.direction,
+          plateNo: vehicle.plate_no,
+          vehicleType: vehicle.type,
+          seatsLeft: Math.max(vehicle.capacity - trip.seats_taken, 0),
+          seatStatus: seatStatus(vehicle.capacity, trip.seats_taken),
+        }
+      : null,
+  );
+
   const load = useCallback(async () => {
     setLoading(true);
     setNotice(null);
@@ -171,6 +194,7 @@ function CrewHome({ userId }: { userId: string }) {
   async function endTrip() {
     if (!trip) return;
     setBusy(true);
+    gps.announceEnded();
     const { error } = await supabase
       .from('trips')
       .update({ status: 'ended', ended_at: new Date().toISOString() })
@@ -205,6 +229,11 @@ function CrewHome({ userId }: { userId: string }) {
             {trip.direction === 'outbound' ? 'Outbound' : 'Inbound'} · started{' '}
             {new Date(trip.started_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
           </Text>
+          <View style={styles.gpsRow}>
+            <View style={[styles.gpsDot, gps.status === 'live' && styles.gpsDotLive]} />
+            <Text style={styles.gpsText}>{GPS_LABEL[gps.status]}</Text>
+          </View>
+          <Text style={styles.hintDark}>Keep this screen open while driving.</Text>
 
           <View style={styles.counter}>
             <Text style={styles.seatsLeft}>{left}</Text>
@@ -296,6 +325,11 @@ const styles = StyleSheet.create({
   counterButton: { width: 96, height: 72, borderRadius: 16, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' },
   counterText: { fontSize: 40, fontWeight: '700', color: colors.navy },
   hint: { marginTop: 4, fontSize: 13, color: '#C9D6E0', textAlign: 'center' },
+  gpsRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  gpsDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#9FB3C2' },
+  gpsDotLive: { backgroundColor: '#2E8B57' },
+  gpsText: { flex: 1, fontSize: 15, color: colors.navy },
+  hintDark: { fontSize: 13, color: colors.muted },
   signOut: { marginTop: 'auto', paddingVertical: 12, alignItems: 'center' },
   signOutText: { fontSize: 15, color: colors.muted, textDecorationLine: 'underline' },
 });

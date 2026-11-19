@@ -30,7 +30,7 @@ logo/                 App icon and horizontal logo
 | Mobile app in Expo Go | `npx expo start`, then scan the QR code |
 | Admin dashboard | `npm run dev`, then open the printed localhost link |
 | Simulator self-check | `npm test` |
-| Simulate a bus | `node simulate.mjs path/to/route.geojson` |
+| Simulate a van on a route | `node simulate.mjs TAG-PAN` (also `DAO-NOR`, `DAO-CAR`, `DAO-UBA`; add `--inbound` or `--speed 45`) |
 
 Background GPS and Android push need an EAS development build: `npx eas-cli@latest build --profile development --platform android`.
 

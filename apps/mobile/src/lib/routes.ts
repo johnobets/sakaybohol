@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase';
 
 export type LatLng = { latitude: number; longitude: number };
-export type RouteLine = { code: string; name: string; lengthKm: number; color: string; coords: LatLng[] };
+export type RouteLine = { id: string; code: string; name: string; lengthKm: number; color: string; coords: LatLng[] };
 export type Hub = { name: string; coord: LatLng };
 
 // One fixed colour per pilot route; new routes fall back to grey until given one.
@@ -16,9 +16,10 @@ const ROUTE_COLORS: Record<string, string> = {
 const toLatLng = ([longitude, latitude]: number[]): LatLng => ({ latitude, longitude });
 
 export async function fetchRouteLines(): Promise<RouteLine[]> {
-  const { data, error } = await supabase.from('route_lines').select('code, name, length_km, geojson').order('code');
+  const { data, error } = await supabase.from('route_lines').select('id, code, name, length_km, geojson').order('code');
   if (error) throw error;
   return data.map((r) => ({
+    id: r.id,
     code: r.code,
     name: r.name,
     lengthKm: Number(r.length_km),

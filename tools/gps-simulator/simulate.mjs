@@ -1,9 +1,11 @@
-// Replays a recorded route (GeoJSON LineString) as a moving vehicle on the route:<route_id> Realtime channel,
-// so features can be built and demoed without a real bus.
+// Plays a van driving a pilot route, as the test crew account, so commuter maps show it live.
 //
 //   node simulate.mjs --selftest
-//   node simulate.mjs route.geojson            (needs .env, see .env.example)
+//   node simulate.mjs TAG-PAN              (outbound, 30 km/h)
+//   node simulate.mjs DAO-CAR --inbound --speed 45
 //
+// Needs .env (see .env.example). It starts a trip on the crew's assigned vehicle, broadcasts a position
+// every STEP_SECONDS, saves one every 30 s like the crew app, and ends the trip at the end or on Ctrl+C.
 // ponytail: constant speed along the line; replay recorded timestamps if realism matters for ETA tests.
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
@@ -51,41 +53,84 @@ function selftest() {
   console.log('selftest ok');
 }
 
-async function run(file) {
+const seatStatus = (capacity, taken) => (capacity - taken <= 0 ? 'full' : capacity - taken <= 3 ? 'almost_full' : 'available');
+const ewkt = ([lng, lat]) => `SRID=4326;POINT(${lng} ${lat})`;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function run(code, { inbound, speedKmh }) {
   const { createClient } = await import('@supabase/supabase-js');
   const env = Object.fromEntries(
     readFileSync(new URL('./.env', import.meta.url), 'utf8')
       .split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('#')).map((l) => l.split(/=(.*)/s).slice(0, 2)),
   );
-  const geo = JSON.parse(readFileSync(file, 'utf8'));
-  const coords = (geo.type === 'FeatureCollection' ? geo.features[0].geometry : geo.geometry ?? geo).coordinates;
-  const speedKmh = Number(env.SPEED_KMH || 30);
   const stepS = Number(env.STEP_SECONDS || 5);
+  const sb = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
 
-  const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
-  const { error } = await supabase.auth.signInWithPassword({ email: env.CREW_EMAIL, password: env.CREW_PASSWORD });
-  if (error) throw error;
-  await supabase.realtime.setAuth();
+  const { data: auth, error: authErr } = await sb.auth.signInWithPassword({ email: env.CREW_EMAIL, password: env.CREW_PASSWORD });
+  if (authErr) throw new Error(`Crew sign-in failed: ${authErr.message}`);
+  const crewId = auth.user.id;
 
-  const channel = supabase.channel(`route:${env.ROUTE_ID}`, { config: { private: true } });
-  await new Promise((ok, fail) => channel.subscribe((s) => (s === 'SUBSCRIBED' ? ok() : s === 'CHANNEL_ERROR' && fail(new Error(s)))));
+  const { data: vehicle, error: vErr } = await sb.from('vehicles').select('id, plate_no, type, capacity').eq('assigned_crew_id', crewId).eq('active', true).single();
+  if (vErr) throw new Error('No vehicle is assigned to the crew account.');
+  const { data: route, error: rErr } = await sb.from('route_lines').select('id, name, geojson').eq('code', code).single();
+  if (rErr) throw new Error(`Route ${code} not found or not active.`);
+  const direction = inbound ? 'inbound' : 'outbound';
+  const coords = inbound ? [...route.geojson.coordinates].reverse() : route.geojson.coordinates;
+
+  const { data: trip, error: tErr } = await sb.from('trips').insert({ route_id: route.id, vehicle_id: vehicle.id, crew_id: crewId, direction }).select('id').single();
+  if (tErr) throw new Error(tErr.code === '23505' ? `${vehicle.plate_no} already has an active trip. End it in the crew app first.` : tErr.message);
+
+  await sb.realtime.setAuth();
+  const channel = sb.channel(`route:${route.id}`, { config: { private: true } });
+  await new Promise((ok, fail) => channel.subscribe((s) => (s === 'SUBSCRIBED' ? ok() : s === 'CHANNEL_ERROR' && fail(new Error('Realtime channel error')))));
+
+  let seatsTaken = 0;
+  let ended = false;
+  async function end() {
+    if (ended) return;
+    ended = true;
+    await channel.send({ type: 'broadcast', event: 'trip_ended', payload: { trip_id: trip.id } });
+    await sb.from('trips').update({ status: 'ended', ended_at: new Date().toISOString() }).eq('id', trip.id);
+    await sb.removeChannel(channel);
+    console.log('trip ended');
+  }
+  process.on('SIGINT', () => end().then(() => process.exit(0)));
 
   const total = lineLength(coords);
-  console.log(`replaying ${(total / 1000).toFixed(1)} km at ${speedKmh} km/h`);
-  for (let d = 0; d <= total; d += (speedKmh / 3.6) * stepS) {
-    const [lng, lat] = pointAt(coords, d);
+  console.log(`${vehicle.plate_no} on ${route.name} (${direction}), ${(total / 1000).toFixed(1)} km at ${speedKmh} km/h. Ctrl+C to stop.`);
+  let lastSaved = 0;
+  for (let d = 0, step = 0; d <= total + 1; d += (speedKmh / 3.6) * stepS, step++) {
+    const point = pointAt(coords, d);
+    if (step > 0 && step % 6 === 0) seatsTaken = Math.min(Math.max(seatsTaken + [-1, 0, 1, 2][Math.floor(Math.random() * 4)], 0), vehicle.capacity);
+    const status = seatStatus(vehicle.capacity, seatsTaken);
+    const ts = new Date().toISOString();
     await channel.send({
       type: 'broadcast',
       event: 'position',
-      payload: { trip_id: env.TRIP_ID, lat, lng, speed_kmh: speedKmh, seat_status: 'available', ts: new Date().toISOString() },
+      payload: {
+        trip_id: trip.id, route_id: route.id, lat: point[1], lng: point[0], speed_kmh: speedKmh, heading: null,
+        seats_left: vehicle.capacity - seatsTaken, seat_status: status, plate_no: vehicle.plate_no, vehicle_type: vehicle.type, direction, ts,
+      },
     });
-    console.log(`${(d / 1000).toFixed(2)} km  ${lat.toFixed(5)}, ${lng.toFixed(5)}`);
-    await new Promise((r) => setTimeout(r, stepS * 1000));
+    if (Date.now() - lastSaved >= 30_000) {
+      lastSaved = Date.now();
+      await Promise.all([
+        sb.from('positions').insert({ trip_id: trip.id, geom: ewkt(point), speed_kmh: speedKmh, recorded_at: ts }),
+        sb.from('trips').update({ last_geom: ewkt(point), last_speed_kmh: speedKmh, last_seen_at: ts, seats_taken: seatsTaken, seat_status: status }).eq('id', trip.id),
+      ]);
+    }
+    console.log(`${(d / 1000).toFixed(2)} km  ${point[1].toFixed(5)}, ${point[0].toFixed(5)}  seats left ${vehicle.capacity - seatsTaken}`);
+    await sleep(stepS * 1000);
   }
-  await supabase.removeChannel(channel);
+  await end();
 }
 
-const arg = process.argv[2];
-if (arg === '--selftest') selftest();
-else if (arg) await run(arg);
-else console.log('usage: node simulate.mjs --selftest | node simulate.mjs <route.geojson>');
+const args = process.argv.slice(2);
+if (args[0] === '--selftest') selftest();
+else if (args[0] && !args[0].startsWith('--')) {
+  const i = args.indexOf('--speed');
+  await run(args[0], { inbound: args.includes('--inbound'), speedKmh: i >= 0 ? Number(args[i + 1]) : 30 }).catch((e) => {
+    console.error(e.message);
+    process.exit(1);
+  });
+} else console.log('usage: node simulate.mjs --selftest | node simulate.mjs <ROUTE-CODE> [--inbound] [--speed 30]');
