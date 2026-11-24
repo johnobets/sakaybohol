@@ -2,6 +2,7 @@ import type { Session } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
 
 import { supabase } from './lib/supabase'
+import { AnalyticsPage } from './AnalyticsPage'
 import { FaresPage } from './FaresPage'
 import { LivePage } from './LivePage'
 import { Login } from './Login'
@@ -11,7 +12,7 @@ import { SetPassword } from './SetPassword'
 import { VehiclesPage } from './VehiclesPage'
 
 type Role = 'commuter' | 'crew' | 'staff' | 'admin'
-type Screen = 'live' | 'routes' | 'vehicles' | 'reports' | 'fares'
+type Screen = 'live' | 'routes' | 'vehicles' | 'reports' | 'fares' | 'analytics'
 
 const SCREENS: { id: Screen | null; name: string }[] = [
   { id: 'live', name: 'Live map' },
@@ -19,7 +20,7 @@ const SCREENS: { id: Screen | null; name: string }[] = [
   { id: 'vehicles', name: 'Vehicles and crew' },
   { id: 'reports', name: 'Reports' },
   { id: 'fares', name: 'Tricycle fares' },
-  { id: null, name: 'Analytics' }, // Sprint 6
+  { id: 'analytics', name: 'Analytics' },
 ]
 
 export default function App() {
@@ -101,6 +102,7 @@ export default function App() {
         {screen === 'vehicles' && <VehiclesPage canEdit={role === 'admin'} />}
         {screen === 'reports' && <ReportsPage canEdit={role === 'admin'} />}
         {screen === 'fares' && <FaresPage canEdit={role === 'admin'} />}
+        {screen === 'analytics' && <AnalyticsPage />}
       </main>
     </div>
   )
