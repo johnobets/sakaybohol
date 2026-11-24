@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import MapView, { Marker, type LatLng } from 'react-native-maps';
 
+import { useT } from '@/lib/i18n';
 import { toEwkt } from '@/lib/live';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
@@ -14,6 +15,7 @@ type Estimate = { km: number; fare: number; base_fare: number; base_km: number; 
 export default function FareScreen() {
   const { lat, lng } = useLocalSearchParams<{ lat?: string; lng?: string }>();
   const session = useSession();
+  const { t } = useT();
   const [to, setTo] = useState<LatLng | null>(null);
   const [est, setEst] = useState<Estimate | null>(null);
   const [charged, setCharged] = useState('');
@@ -48,7 +50,7 @@ export default function FareScreen() {
   if (!from) {
     return (
       <View style={styles.screen}>
-        <Text style={styles.body}>Pick where you start first: allow location, or long-press the home map.</Text>
+        <Text style={styles.body}>{t('Pick where you start first: allow location, or long-press the home map.')}</Text>
       </View>
     );
   }
@@ -58,43 +60,47 @@ export default function FareScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.screen}>
-      <Text style={styles.body}>Tap the map where you are going.</Text>
+      <Text style={styles.body}>{t('Tap the map where you are going.')}</Text>
       <MapView style={styles.map} initialRegion={{ ...from, latitudeDelta: 0.04, longitudeDelta: 0.04 }} onPress={(e) => {
           setEst(null);
           setTo(e.nativeEvent.coordinate);
         }}>
-        <Marker coordinate={from} title="From" pinColor="#2B7BB9" />
-        {to ? <Marker coordinate={to} title="To" pinColor="#2E8B57" /> : null}
+        <Marker coordinate={from} title={t('From')} pinColor="#2B7BB9" />
+        {to ? <Marker coordinate={to} title={t('To')} pinColor="#2E8B57" /> : null}
       </MapView>
 
       {est ? (
         <View style={styles.card}>
           <Text style={styles.fare}>₱{est.fare}</Text>
-          <Text style={styles.body}>About {est.km} km by road</Text>
+          <Text style={styles.body}>{t('About {km} km by road', { km: est.km })}</Text>
           <Text style={styles.small}>
-            ₱{est.base_fare} for the first {est.base_km} km, then ₱{est.per_km} per km. Fare set by the city; ask the driver before you ride.
+            {t('₱{base} for the first {km} km, then ₱{per} per km. Fare set by the city; ask the driver before you ride.', {
+              base: est.base_fare,
+              km: est.base_km,
+              per: est.per_km,
+            })}
           </Text>
         </View>
       ) : null}
 
       {est ? (
         <>
-          <Text style={styles.label}>Charged more? Report it</Text>
+          <Text style={styles.label}>{t('Charged more? Report it')}</Text>
           {session ? (
             <>
-              <TextInput style={styles.input} placeholder="Amount you paid (₱)" keyboardType="numeric" value={charged} onChangeText={setCharged} />
-              <TextInput style={styles.input} placeholder="Tricycle body number (optional)" autoCapitalize="characters" maxLength={20} value={plate} onChangeText={setPlate} />
-              {charged && !over ? <Text style={styles.small}>That is within the fare.</Text> : null}
+              <TextInput style={styles.input} placeholder={t('Amount you paid (₱)')} keyboardType="numeric" value={charged} onChangeText={setCharged} />
+              <TextInput style={styles.input} placeholder={t('Tricycle body number (optional)')} autoCapitalize="characters" maxLength={20} value={plate} onChangeText={setPlate} />
+              {charged && !over ? <Text style={styles.small}>{t('That is within the fare.')}</Text> : null}
               <Pressable style={[styles.button, (!over || busy) && styles.disabled]} disabled={!over || busy} onPress={report} accessibilityRole="button">
-                <Text style={styles.buttonText}>{busy ? 'Sending…' : 'Report overcharge'}</Text>
+                <Text style={styles.buttonText}>{t(busy ? 'Sending…' : 'Report overcharge')}</Text>
               </Pressable>
             </>
           ) : (
-            <Link href="/account" style={styles.link}>Sign in to report an overcharge</Link>
+            <Link href="/account" style={styles.link}>{t('Sign in to report an overcharge')}</Link>
           )}
         </>
       ) : null}
-      {msg ? <Text style={styles.msg}>{msg}</Text> : null}
+      {msg ? <Text style={styles.msg}>{t(msg)}</Text> : null}
     </ScrollView>
   );
 }

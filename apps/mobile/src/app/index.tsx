@@ -10,6 +10,7 @@ import { SEAT_LABEL, type SeatStatus } from '@/lib/seats';
 import { BOHOL_REGION, colors } from '@/lib/theme';
 import { formatEta, useArrivals } from '@/lib/useArrivals';
 import { toEwkt } from '@/lib/live';
+import { useT } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import { useLiveVehicles } from '@/lib/useLiveVehicles';
 import { useSession } from '@/lib/useSession';
@@ -27,6 +28,7 @@ export default function CommuterHome() {
   const { arrivals, error: etaError } = useArrivals(spot);
   const colorOf = (routeId: string) => routes.find((r) => r.id === routeId)?.color ?? colors.navy;
   const session = useSession();
+  const { t } = useT();
   const [sentFor, setSentFor] = useState<Record<string, string>>({}); // tripId -> what was sent
 
   // "I'm waiting" puts a signal at the pickup point for 30 minutes; "It's full" counts toward 3 reports.
@@ -38,7 +40,7 @@ export default function CommuterHome() {
         : await supabase.from('rider_full_reports').insert({ trip_id: a.tripId, user_id: session.user.id });
     setSentFor((s) => ({
       ...s,
-      [a.tripId]: error ? (error.code === '23505' ? 'Already reported' : 'Not sent, try again') : kind === 'waiting' ? 'Driver can see you are waiting' : 'Thanks, full report sent',
+      [a.tripId]: t(error ? (error.code === '23505' ? 'Already reported' : 'Not sent, try again') : kind === 'waiting' ? 'Driver can see you are waiting' : 'Thanks, full report sent'),
     }));
   }
 
@@ -51,10 +53,19 @@ export default function CommuterHome() {
       if (watched[a.tripId] && a.etaMin <= ALERT_MIN) {
         setWatched(({ [a.tripId]: _done, ...rest }) => rest);
         Vibration.vibrate([0, 400, 200, 400]);
-        Alert.alert('Your ride is near', `${a.vehicleType === 'bus' ? 'Bus' : 'Van'} ${a.plateNo} to ${a.towards} passes you in about ${Math.max(1, Math.round(a.etaMin))} min. ${a.seatsLeft} seats left.`);
+        Alert.alert(
+          t('Your ride is near'),
+          t('{vehicle} {plate} to {towards} passes you in about {n} min. {seats} seats left.', {
+            vehicle: a.vehicleType === 'bus' ? 'Bus' : 'Van',
+            plate: a.plateNo,
+            towards: a.towards,
+            n: Math.max(1, Math.round(a.etaMin)),
+            seats: a.seatsLeft,
+          }),
+        );
       }
     }
-  }, [arrivals, watched]);
+  }, [arrivals, watched, t]);
 
   useEffect(() => {
     Promise.all([fetchRouteLines(), fetchHubs()])
@@ -101,10 +112,10 @@ export default function CommuterHome() {
         {hubs.map((h) => (
           <Marker key={h.name} coordinate={h.coord} title={h.name} pinColor={colors.navy} />
         ))}
-        {spot?.picked ? <Marker coordinate={spot} title="Your spot" pinColor="#2B7BB9" /> : null}
-        {pickup ? <Marker coordinate={pickup} title="Wait here" description="Nearest point on the route" pinColor="#2E8B57" /> : null}
+        {spot?.picked ? <Marker coordinate={spot} title={t('Your spot')} pinColor="#2B7BB9" /> : null}
+        {pickup ? <Marker coordinate={pickup} title={t('Wait here')} description={t('Nearest point on the route')} pinColor="#2E8B57" /> : null}
         {incidents.map((i) => (
-          <Marker key={i.id} coordinate={i.coord} title={`⚠ ${INCIDENT_LABEL[i.type]}`} description={i.description ?? 'Reported by a commuter'}>
+          <Marker key={i.id} coordinate={i.coord} title={`⚠ ${t(INCIDENT_LABEL[i.type])}`} description={i.description ?? t('Reported by a commuter')}>
             <View style={[styles.hazard, { backgroundColor: INCIDENT_COLOR[i.type] }]}>
               <Text style={styles.hazardText}>!</Text>
             </View>
@@ -115,7 +126,7 @@ export default function CommuterHome() {
             key={v.trip_id}
             coordinate={{ latitude: v.lat, longitude: v.lng }}
             title={`${v.vehicle_type === 'bus' ? 'Bus' : 'Van'} ${v.plate_no}`}
-            description={`${v.seats_left} seats left · ${SEAT_LABEL[v.seat_status as SeatStatus] ?? v.seat_status}`}>
+            description={`${t('{n} seats left', { n: v.seats_left })} · ${t(SEAT_LABEL[v.seat_status as SeatStatus] ?? v.seat_status)}`}>
             <View style={[styles.van, { borderColor: colorOf(v.route_id) }]}>
               <Text style={styles.vanText}>{v.seats_left}</Text>
             </View>
@@ -124,48 +135,49 @@ export default function CommuterHome() {
       </MapView>
 
       <View style={styles.sheet}>
-        <Text style={styles.title}>Coming to you</Text>
+        <Text style={styles.title}>{t('Coming to you')}</Text>
         <Text style={styles.sub}>
-          {spot?.picked ? 'From the spot you picked. ' : spot ? 'From your location. ' : ''}Long-press the map to pick another spot.
+          {spot?.picked ? t('From the spot you picked. ') : spot ? t('From your location. ') : ''}
+          {t('Long-press the map to pick another spot.')}
         </Text>
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-        {etaError ? <Text style={styles.error}>Could not load arrival times. Check your connection.</Text> : null}
+        {error ? <Text style={styles.error}>{t(error)}</Text> : null}
+        {etaError ? <Text style={styles.error}>{t('Could not load arrival times. Check your connection.')}</Text> : null}
         {!spot && gpsDenied ? (
           <Pressable onPress={locateMe} accessibilityRole="button">
-            <Text style={styles.error}>Location is off. Allow it, or long-press the map to pick a spot.</Text>
+            <Text style={styles.error}>{t('Location is off. Allow it, or long-press the map to pick a spot.')}</Text>
           </Pressable>
         ) : null}
         {spot?.picked ? (
           <Pressable onPress={locateMe} accessibilityRole="button">
-            <Text style={styles.link}>Use my location instead</Text>
+            <Text style={styles.link}>{t('Use my location instead')}</Text>
           </Pressable>
         ) : null}
 
         <ScrollView style={styles.list}>
           {spot && arrivals.length === 0 && !etaError ? (
-            <Text style={styles.empty}>No vans coming within 1 km of this spot right now.</Text>
+            <Text style={styles.empty}>{t('No vans coming within 1 km of this spot right now.')}</Text>
           ) : null}
           {arrivals.map((a) => (
             <View key={a.tripId} style={styles.arrival}>
               <View style={[styles.swatch, { backgroundColor: colorOf(a.routeId) }]} />
               <View style={styles.arrivalText}>
-                <Text style={styles.eta}>{formatEta(a.etaMin)}</Text>
+                <Text style={styles.eta}>{t(formatEta(a.etaMin))}</Text>
                 <Text style={styles.arrivalLine}>
                   {a.vehicleType === 'bus' ? 'Bus' : 'Van'} {a.plateNo} → {a.towards}
                 </Text>
                 <Text style={styles.arrivalMeta}>
-                  {a.seatsLeft} seats left · {(a.distanceM / 1000).toFixed(1)} km away
-                  {a.walkM > 50 ? ` · walk ${Math.round(a.walkM)} m to the road` : ''}
+                  {t('{n} seats left', { n: a.seatsLeft })} · {t('{km} km away', { km: (a.distanceM / 1000).toFixed(1) })}
+                  {a.walkM > 50 ? ` · ${t('walk {m} m to the road', { m: Math.round(a.walkM) })}` : ''}
                 </Text>
                 {sentFor[a.tripId] ? (
                   <Text style={styles.sent}>{sentFor[a.tripId]}</Text>
                 ) : (
                   <View style={styles.signalRow}>
                     <Pressable style={styles.chip} onPress={() => signal(a, 'waiting')} accessibilityRole="button">
-                      <Text style={styles.chipText}>{"I'm waiting"}</Text>
+                      <Text style={styles.chipText}>{t("I'm waiting")}</Text>
                     </Pressable>
                     <Pressable style={styles.chip} onPress={() => signal(a, 'full')} accessibilityRole="button">
-                      <Text style={styles.chipText}>{"It's full"}</Text>
+                      <Text style={styles.chipText}>{t("It's full")}</Text>
                     </Pressable>
                     <Pressable
                       style={[styles.chip, watched[a.tripId] && styles.chipOn]}
@@ -173,7 +185,7 @@ export default function CommuterHome() {
                       accessibilityRole="button"
                       accessibilityState={{ selected: !!watched[a.tripId] }}>
                       <Text style={[styles.chipText, watched[a.tripId] && styles.chipTextOn]}>
-                        {watched[a.tripId] ? `Alert at ${ALERT_MIN} min ✓` : 'Alert me'}
+                        {watched[a.tripId] ? t('Alert at {n} min ✓', { n: ALERT_MIN }) : t('Alert me')}
                       </Text>
                     </Pressable>
                   </View>
@@ -181,21 +193,21 @@ export default function CommuterHome() {
               </View>
             </View>
           ))}
-          <Text style={styles.routesTitle}>Routes</Text>
+          <Text style={styles.routesTitle}>{t('Routes')}</Text>
           {routes.map((r) => (
             <View key={r.code} style={styles.row}>
               <View style={[styles.swatch, { backgroundColor: r.color }]} />
               <View style={styles.routeName}>
                 <Text style={styles.routeNameText}>{r.name}</Text>
                 {(() => {
-                  const t = lastTripInfo(r.lastTrip);
-                  return t.state === 'none' ? null : (
-                    <Text style={[styles.lastTrip, t.state === 'soon' && styles.lastSoon, t.state === 'over' && styles.lastOver]}>{t.label}</Text>
+                  const last = lastTripInfo(r.lastTrip);
+                  return last.state === 'none' ? null : (
+                    <Text style={[styles.lastTrip, last.state === 'soon' && styles.lastSoon, last.state === 'over' && styles.lastOver]}>{t(last.label, last)}</Text>
                   );
                 })()}
               </View>
               <Text style={styles.km}>
-                {live.some((v) => v.route_id === r.id) ? `${live.filter((v) => v.route_id === r.id).length} live · ` : ''}
+                {live.some((v) => v.route_id === r.id) ? t('{n} live · ', { n: live.filter((v) => v.route_id === r.id).length }) : ''}
                 {r.lengthKm} km
               </Text>
             </View>
@@ -205,24 +217,24 @@ export default function CommuterHome() {
         <View style={styles.actions}>
           <Link href={spot ? { pathname: '/plan', params: { lat: String(spot.latitude), lng: String(spot.longitude) } } : '/plan'} asChild>
             <Pressable style={[styles.button, styles.plan, styles.wide]} accessibilityRole="button">
-              <Text style={styles.planText}>Plan a trip from here</Text>
+              <Text style={styles.planText}>{t('Plan a trip from here')}</Text>
             </Pressable>
           </Link>
           <Link href={spot ? { pathname: '/fare', params: { lat: String(spot.latitude), lng: String(spot.longitude) } } : '/fare'} asChild>
             <Pressable style={[styles.button, styles.plan, styles.half]} accessibilityRole="button">
-              <Text style={styles.planText}>Tricycle fare</Text>
+              <Text style={styles.planText}>{t('Tricycle fare')}</Text>
             </Pressable>
           </Link>
         </View>
         <View style={styles.actions}>
           <Link href={spot ? { pathname: '/report', params: { lat: String(spot.latitude), lng: String(spot.longitude) } } : '/report'} asChild>
             <Pressable style={[styles.button, styles.half, styles.warn]} accessibilityRole="button">
-              <Text style={styles.buttonText}>Report a hazard</Text>
+              <Text style={styles.buttonText}>{t('Report a hazard')}</Text>
             </Pressable>
           </Link>
           <Link href="/crew" asChild>
             <Pressable style={[styles.button, styles.half]} accessibilityRole="button">
-              <Text style={styles.buttonText}>Driver or conductor</Text>
+              <Text style={styles.buttonText}>{t('Driver or conductor')}</Text>
             </Pressable>
           </Link>
         </View>

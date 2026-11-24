@@ -2,27 +2,29 @@ import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 
 import { AuthForm } from '@/components/AuthForm';
+import { useT } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
 import { useSession } from '@/lib/useSession';
 
 export default function AccountScreen() {
   const session = useSession();
+  const { t } = useT();
   return (
     <ScrollView contentContainerStyle={styles.screen}>
       {session ? (
         <>
-          <Text style={styles.title}>Signed in</Text>
+          <Text style={styles.title}>{t('Signed in')}</Text>
           <Text style={styles.body}>{session.user.email}</Text>
           <Pressable style={styles.button} onPress={() => router.back()} accessibilityRole="button">
-            <Text style={styles.buttonText}>Back to the map</Text>
+            <Text style={styles.buttonText}>{t('Back to the map')}</Text>
           </Pressable>
           <Pressable onPress={() => supabase.auth.signOut()} accessibilityRole="button">
-            <Text style={styles.link}>Sign out</Text>
+            <Text style={styles.link}>{t('Sign out')}</Text>
           </Pressable>
         </>
       ) : (
-        <AuthForm reason="An account lets you tell drivers you are waiting, report full vans and road hazards." />
+        <AuthForm reason={t('An account lets you tell drivers you are waiting, report full vans and road hazards.')} />
       )}
     </ScrollView>
   );

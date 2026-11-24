@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { AuthForm } from '@/components/AuthForm';
+import { useT } from '@/lib/i18n';
 import { INCIDENT_COLOR, INCIDENT_LABEL, type IncidentType } from '@/lib/incidents';
 import { toEwkt } from '@/lib/live';
 import { supabase } from '@/lib/supabase';
@@ -22,6 +23,8 @@ export default function ReportScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+  const { t } = useT();
+  const tr = t; // the type chips below use t as their loop variable
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -67,7 +70,7 @@ export default function ReportScreen() {
   if (!lat || !lng) {
     return (
       <View style={styles.screen}>
-        <Text style={styles.body}>Pick a spot first: allow location, or long-press the map where the hazard is.</Text>
+        <Text style={styles.body}>{t('Pick a spot first: allow location, or long-press the map where the hazard is.')}</Text>
       </View>
     );
   }
@@ -75,22 +78,22 @@ export default function ReportScreen() {
   return (
     <ScrollView contentContainerStyle={styles.screen}>
       {!session ? (
-        <AuthForm reason="Sign in so the traffic office can follow up on your report." />
+        <AuthForm reason={t('Sign in so the traffic office can follow up on your report.')} />
       ) : sent ? (
         <>
-          <Text style={styles.title}>Thank you</Text>
-          <Text style={styles.body}>Your report was sent. It appears on the map once the traffic office approves it.</Text>
+          <Text style={styles.title}>{t('Thank you')}</Text>
+          <Text style={styles.body}>{t('Your report was sent. It appears on the map once the traffic office approves it.')}</Text>
           <Pressable style={styles.button} onPress={() => router.back()} accessibilityRole="button">
-            <Text style={styles.buttonText}>Back to the map</Text>
+            <Text style={styles.buttonText}>{t('Back to the map')}</Text>
           </Pressable>
         </>
       ) : (
         <>
-          <Text style={styles.title}>Report a hazard</Text>
+          <Text style={styles.title}>{t('Report a hazard')}</Text>
           <Text style={styles.body}>
-            At {Number(lat).toFixed(5)}, {Number(lng).toFixed(5)}. To report another spot, go back and long-press the map.
+            {t('At {lat}, {lng}. To report another spot, go back and long-press the map.', { lat: Number(lat).toFixed(5), lng: Number(lng).toFixed(5) })}
           </Text>
-          <Text style={styles.label}>What is it?</Text>
+          <Text style={styles.label}>{t('What is it?')}</Text>
           <View style={styles.types}>
             {TYPES.map((t) => (
               <Pressable
@@ -99,32 +102,32 @@ export default function ReportScreen() {
                 onPress={() => setType(t)}
                 accessibilityRole="radio"
                 accessibilityState={{ selected: type === t }}>
-                <Text style={[styles.chipText, type === t && styles.chipTextOn]}>{INCIDENT_LABEL[t]}</Text>
+                <Text style={[styles.chipText, type === t && styles.chipTextOn]}>{tr(INCIDENT_LABEL[t])}</Text>
               </Pressable>
             ))}
           </View>
-          <Text style={styles.label}>Details (optional)</Text>
+          <Text style={styles.label}>{t('Details (optional)')}</Text>
           <TextInput
             style={[styles.input, styles.multiline]}
-            placeholder="e.g. Knee-deep flood, vans turning back"
+            placeholder={t('e.g. Knee-deep flood, vans turning back')}
             multiline
             maxLength={500}
             value={description}
             onChangeText={setDescription}
           />
-          <Text style={styles.label}>Photo (optional)</Text>
+          <Text style={styles.label}>{t('Photo (optional)')}</Text>
           {photo ? <Image source={{ uri: photo.uri }} style={styles.photo} accessibilityLabel="Photo to send" /> : null}
           <View style={styles.row}>
             <Pressable style={styles.secondary} onPress={() => pick(true)} accessibilityRole="button">
-              <Text style={styles.secondaryText}>Take photo</Text>
+              <Text style={styles.secondaryText}>{t('Take photo')}</Text>
             </Pressable>
             <Pressable style={styles.secondary} onPress={() => pick(false)} accessibilityRole="button">
-              <Text style={styles.secondaryText}>Choose photo</Text>
+              <Text style={styles.secondaryText}>{t('Choose photo')}</Text>
             </Pressable>
           </View>
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+          {error ? <Text style={styles.error}>{t(error)}</Text> : null}
           <Pressable style={[styles.button, (!type || busy) && styles.disabled]} disabled={!type || busy} onPress={submit} accessibilityRole="button">
-            <Text style={styles.buttonText}>{busy ? 'Sending…' : 'Send report'}</Text>
+            <Text style={styles.buttonText}>{t(busy ? 'Sending…' : 'Send report')}</Text>
           </Pressable>
         </>
       )}

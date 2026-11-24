@@ -30,16 +30,17 @@ export async function fetchRouteLines(): Promise<RouteLine[]> {
 }
 
 // Last-trip warning: "19:30:00" -> label and how close it is (now passed in for the self-check).
-export function lastTripInfo(lastTrip: string | null, now = new Date()): { label: string; state: 'none' | 'ok' | 'soon' | 'over' } {
-  if (!lastTrip) return { label: '', state: 'none' };
+// label is an English template ({time}, {n}) so the screen can translate it.
+export function lastTripInfo(lastTrip: string | null, now = new Date()): { label: string; time: string; n: number; state: 'none' | 'ok' | 'soon' | 'over' } {
+  if (!lastTrip) return { label: '', time: '', n: 0, state: 'none' };
   const [h, m] = lastTrip.split(':').map(Number);
   const at = new Date(now);
   at.setHours(h, m, 0, 0);
-  const minsLeft = (at.getTime() - now.getTime()) / 60_000;
+  const n = Math.round((at.getTime() - now.getTime()) / 60_000);
   const time = at.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-  if (minsLeft < 0) return { label: 'No more trips today', state: 'over' };
-  if (minsLeft <= 60) return { label: `Last trip ${time}, in ${Math.round(minsLeft)} min`, state: 'soon' };
-  return { label: `Last trip ${time}`, state: 'ok' };
+  if (n < 0) return { label: 'No more trips today', time, n, state: 'over' };
+  if (n <= 60) return { label: 'Last trip {time}, in {n} min', time, n, state: 'soon' };
+  return { label: 'Last trip {time}', time, n, state: 'ok' };
 }
 
 export async function fetchHubs(): Promise<Hub[]> {
