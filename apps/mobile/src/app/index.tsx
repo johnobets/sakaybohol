@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 
+import { fetchIncidents, INCIDENT_COLOR, INCIDENT_LABEL, type Incident } from '@/lib/incidents';
 import { fetchHubs, fetchRouteLines, type Hub, type LatLng, type RouteLine } from '@/lib/routes';
 import { SEAT_LABEL, type SeatStatus } from '@/lib/seats';
 import { BOHOL_REGION, colors } from '@/lib/theme';
@@ -31,6 +32,15 @@ export default function CommuterHome() {
       })
       .catch(() => setError('Could not load routes. Check your connection.'));
     locateMe();
+  }, []);
+
+  // Approved hazards; refreshed every minute so new approvals and expiries show up.
+  const [incidents, setIncidents] = useState<Incident[]>([]);
+  useEffect(() => {
+    const load = () => fetchIncidents().then(setIncidents).catch(() => {});
+    load();
+    const timer = setInterval(load, 60_000);
+    return () => clearInterval(timer);
   }, []);
 
   async function locateMe() {
@@ -61,6 +71,13 @@ export default function CommuterHome() {
         ))}
         {spot?.picked ? <Marker coordinate={spot} title="Your spot" pinColor="#2B7BB9" /> : null}
         {pickup ? <Marker coordinate={pickup} title="Wait here" description="Nearest point on the route" pinColor="#2E8B57" /> : null}
+        {incidents.map((i) => (
+          <Marker key={i.id} coordinate={i.coord} title={`⚠ ${INCIDENT_LABEL[i.type]}`} description={i.description ?? 'Reported by a commuter'}>
+            <View style={[styles.hazard, { backgroundColor: INCIDENT_COLOR[i.type] }]}>
+              <Text style={styles.hazardText}>!</Text>
+            </View>
+          </Marker>
+        ))}
         {live.map((v) => (
           <Marker
             key={v.trip_id}
@@ -124,11 +141,18 @@ export default function CommuterHome() {
           ))}
         </ScrollView>
 
-        <Link href="/crew" asChild>
-          <Pressable style={styles.button} accessibilityRole="button">
-            <Text style={styles.buttonText}>I am a driver or conductor</Text>
-          </Pressable>
-        </Link>
+        <View style={styles.actions}>
+          <Link href={spot ? { pathname: '/report', params: { lat: String(spot.latitude), lng: String(spot.longitude) } } : '/report'} asChild>
+            <Pressable style={[styles.button, styles.half, styles.warn]} accessibilityRole="button">
+              <Text style={styles.buttonText}>Report a hazard</Text>
+            </Pressable>
+          </Link>
+          <Link href="/crew" asChild>
+            <Pressable style={[styles.button, styles.half]} accessibilityRole="button">
+              <Text style={styles.buttonText}>Driver or conductor</Text>
+            </Pressable>
+          </Link>
+        </View>
       </View>
     </View>
   );
@@ -157,5 +181,10 @@ const styles = StyleSheet.create({
   van: { minWidth: 32, height: 32, paddingHorizontal: 6, borderRadius: 16, borderWidth: 3, backgroundColor: colors.navy, alignItems: 'center', justifyContent: 'center' },
   vanText: { color: colors.cream, fontSize: 14, fontWeight: '700' },
   button: { marginTop: 8, padding: 14, borderRadius: 12, backgroundColor: colors.navy, alignItems: 'center' },
+  actions: { flexDirection: 'row', gap: 10 },
+  half: { flex: 1 },
+  warn: { backgroundColor: colors.orangeDark },
+  hazard: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, borderColor: colors.cream, alignItems: 'center', justifyContent: 'center' },
+  hazardText: { color: colors.cream, fontWeight: '800', fontSize: 15 },
   buttonText: { color: colors.cream, fontSize: 16, fontWeight: '600' },
 });

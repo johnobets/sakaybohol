@@ -11,6 +11,7 @@ export default function RootLayout() {
       }}>
       <Stack.Screen name="index" options={{ title: 'SakayBohol' }} />
       <Stack.Screen name="crew" options={{ title: 'Crew mode' }} />
+      <Stack.Screen name="report" options={{ title: 'Report a hazard' }} />
     </Stack>
   );
 }

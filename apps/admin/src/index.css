@@ -60,6 +60,14 @@ table { width: 100%; border-collapse: collapse; background: var(--card); border:
 th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: middle; }
 th { background: #EEF1F4; color: var(--muted); font-weight: 600; font-size: 13px; }
 tr:last-child td { border-bottom: 0; }
+.thumb { width: 72px; height: 54px; object-fit: cover; border-radius: 6px; display: block; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; background: #EEF1F4; color: var(--muted); }
+.badge.pending { background: #FFF1E2; color: var(--orange-dark); }
+.badge.approved { background: #E3F2EA; color: #1E6B45; }
+.badge.rejected { background: #F7E4E1; color: #9B2C1F; }
+td.actions { white-space: nowrap; }
+td.actions > * + * { margin-left: 10px; }
+button.small { padding: 6px 12px; font-size: 13px; }
 .switch { flex-direction: row; align-items: center; gap: 8px; color: var(--ink); }
 .inline-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; margin-top: 8px; }
 .inline-form h2 { flex-basis: 100%; margin-bottom: 0; }

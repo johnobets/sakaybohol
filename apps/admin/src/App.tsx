@@ -4,18 +4,19 @@ import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { LivePage } from './LivePage'
 import { Login } from './Login'
+import { ReportsPage } from './ReportsPage'
 import { RoutesPage } from './RoutesPage'
 import { SetPassword } from './SetPassword'
 import { VehiclesPage } from './VehiclesPage'
 
 type Role = 'commuter' | 'crew' | 'staff' | 'admin'
-type Screen = 'live' | 'routes' | 'vehicles'
+type Screen = 'live' | 'routes' | 'vehicles' | 'reports'
 
 const SCREENS: { id: Screen | null; name: string }[] = [
   { id: 'live', name: 'Live map' },
   { id: 'routes', name: 'Routes' },
   { id: 'vehicles', name: 'Vehicles and crew' },
-  { id: null, name: 'Reports' }, // Sprint 5
+  { id: 'reports', name: 'Reports' },
   { id: null, name: 'Analytics' }, // Sprint 6
 ]
 
@@ -96,6 +97,7 @@ export default function App() {
         {screen === 'live' && <LivePage />}
         {screen === 'routes' && <RoutesPage canEdit={role === 'admin'} />}
         {screen === 'vehicles' && <VehiclesPage canEdit={role === 'admin'} />}
+        {screen === 'reports' && <ReportsPage canEdit={role === 'admin'} />}
       </main>
     </div>
   )
