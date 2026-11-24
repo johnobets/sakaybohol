@@ -1,11 +1,11 @@
 import * as Location from 'expo-location';
 import { Link, router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, Vibration, View } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 
 import { fetchIncidents, INCIDENT_COLOR, INCIDENT_LABEL, type Incident } from '@/lib/incidents';
-import { fetchHubs, fetchRouteLines, type Hub, type LatLng, type RouteLine } from '@/lib/routes';
+import { fetchHubs, fetchRouteLines, lastTripInfo, type Hub, type LatLng, type RouteLine } from '@/lib/routes';
 import { SEAT_LABEL, type SeatStatus } from '@/lib/seats';
 import { BOHOL_REGION, colors } from '@/lib/theme';
 import { formatEta, useArrivals } from '@/lib/useArrivals';
@@ -41,6 +41,20 @@ export default function CommuterHome() {
       [a.tripId]: error ? (error.code === '23505' ? 'Already reported' : 'Not sent, try again') : kind === 'waiting' ? 'Driver can see you are waiting' : 'Thanks, full report sent',
     }));
   }
+
+  // "Alert me": vibrate and pop up when a watched van is 5 minutes away. Works while the app is open;
+  // push notifications in the background need the development build.
+  const ALERT_MIN = 5;
+  const [watched, setWatched] = useState<Record<string, true>>({});
+  useEffect(() => {
+    for (const a of arrivals) {
+      if (watched[a.tripId] && a.etaMin <= ALERT_MIN) {
+        setWatched(({ [a.tripId]: _done, ...rest }) => rest);
+        Vibration.vibrate([0, 400, 200, 400]);
+        Alert.alert('Your ride is near', `${a.vehicleType === 'bus' ? 'Bus' : 'Van'} ${a.plateNo} to ${a.towards} passes you in about ${Math.max(1, Math.round(a.etaMin))} min. ${a.seatsLeft} seats left.`);
+      }
+    }
+  }, [arrivals, watched]);
 
   useEffect(() => {
     Promise.all([fetchRouteLines(), fetchHubs()])
@@ -153,6 +167,15 @@ export default function CommuterHome() {
                     <Pressable style={styles.chip} onPress={() => signal(a, 'full')} accessibilityRole="button">
                       <Text style={styles.chipText}>It's full</Text>
                     </Pressable>
+                    <Pressable
+                      style={[styles.chip, watched[a.tripId] && styles.chipOn]}
+                      onPress={() => setWatched((w) => (w[a.tripId] ? (({ [a.tripId]: _x, ...rest }) => rest)(w) : { ...w, [a.tripId]: true }))}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: !!watched[a.tripId] }}>
+                      <Text style={[styles.chipText, watched[a.tripId] && styles.chipTextOn]}>
+                        {watched[a.tripId] ? `Alert at ${ALERT_MIN} min ✓` : 'Alert me'}
+                      </Text>
+                    </Pressable>
                   </View>
                 )}
               </View>
@@ -162,7 +185,15 @@ export default function CommuterHome() {
           {routes.map((r) => (
             <View key={r.code} style={styles.row}>
               <View style={[styles.swatch, { backgroundColor: r.color }]} />
-              <Text style={styles.routeName}>{r.name}</Text>
+              <View style={styles.routeName}>
+                <Text style={styles.routeNameText}>{r.name}</Text>
+                {(() => {
+                  const t = lastTripInfo(r.lastTrip);
+                  return t.state === 'none' ? null : (
+                    <Text style={[styles.lastTrip, t.state === 'soon' && styles.lastSoon, t.state === 'over' && styles.lastOver]}>{t.label}</Text>
+                  );
+                })()}
+              </View>
               <Text style={styles.km}>
                 {live.some((v) => v.route_id === r.id) ? `${live.filter((v) => v.route_id === r.id).length} live · ` : ''}
                 {r.lengthKm} km
@@ -211,7 +242,8 @@ const styles = StyleSheet.create({
   routesTitle: { marginTop: 12, fontSize: 15, fontWeight: '700', color: colors.navy },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 },
   swatch: { width: 14, height: 14, borderRadius: 7, marginTop: 4 },
-  routeName: { flex: 1, fontSize: 15, color: colors.navy },
+  routeName: { flex: 1 },
+  routeNameText: { fontSize: 15, color: colors.navy },
   km: { fontSize: 14, color: colors.muted },
   van: { minWidth: 32, height: 32, paddingHorizontal: 6, borderRadius: 16, borderWidth: 3, backgroundColor: colors.navy, alignItems: 'center', justifyContent: 'center' },
   vanText: { color: colors.cream, fontSize: 14, fontWeight: '700' },
@@ -220,6 +252,11 @@ const styles = StyleSheet.create({
   signalRow: { flexDirection: 'row', gap: 8, marginTop: 6 },
   chip: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 16, borderWidth: 1, borderColor: colors.navy },
   chipText: { fontSize: 13, color: colors.navy, fontWeight: '600' },
+  chipOn: { backgroundColor: colors.navy },
+  chipTextOn: { color: colors.cream },
+  lastTrip: { fontSize: 12, color: colors.muted },
+  lastSoon: { color: colors.orangeDark, fontWeight: '700' },
+  lastOver: { color: '#9B2C1F', fontWeight: '700' },
   sent: { marginTop: 6, fontSize: 13, color: '#2E8B57', fontWeight: '600' },
   plan: { backgroundColor: colors.orange },
   planText: { color: colors.ink, fontSize: 16, fontWeight: '700' },
