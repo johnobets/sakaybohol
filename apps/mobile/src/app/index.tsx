@@ -162,10 +162,10 @@ export default function CommuterHome() {
                 ) : (
                   <View style={styles.signalRow}>
                     <Pressable style={styles.chip} onPress={() => signal(a, 'waiting')} accessibilityRole="button">
-                      <Text style={styles.chipText}>I'm waiting</Text>
+                      <Text style={styles.chipText}>{"I'm waiting"}</Text>
                     </Pressable>
                     <Pressable style={styles.chip} onPress={() => signal(a, 'full')} accessibilityRole="button">
-                      <Text style={styles.chipText}>It's full</Text>
+                      <Text style={styles.chipText}>{"It's full"}</Text>
                     </Pressable>
                     <Pressable
                       style={[styles.chip, watched[a.tripId] && styles.chipOn]}
@@ -202,11 +202,18 @@ export default function CommuterHome() {
           ))}
         </ScrollView>
 
-        <Link href={spot ? { pathname: '/plan', params: { lat: String(spot.latitude), lng: String(spot.longitude) } } : '/plan'} asChild>
-          <Pressable style={[styles.button, styles.plan]} accessibilityRole="button">
-            <Text style={styles.planText}>Plan a trip from here</Text>
-          </Pressable>
-        </Link>
+        <View style={styles.actions}>
+          <Link href={spot ? { pathname: '/plan', params: { lat: String(spot.latitude), lng: String(spot.longitude) } } : '/plan'} asChild>
+            <Pressable style={[styles.button, styles.plan, styles.wide]} accessibilityRole="button">
+              <Text style={styles.planText}>Plan a trip from here</Text>
+            </Pressable>
+          </Link>
+          <Link href={spot ? { pathname: '/fare', params: { lat: String(spot.latitude), lng: String(spot.longitude) } } : '/fare'} asChild>
+            <Pressable style={[styles.button, styles.plan, styles.half]} accessibilityRole="button">
+              <Text style={styles.planText}>Tricycle fare</Text>
+            </Pressable>
+          </Link>
+        </View>
         <View style={styles.actions}>
           <Link href={spot ? { pathname: '/report', params: { lat: String(spot.latitude), lng: String(spot.longitude) } } : '/report'} asChild>
             <Pressable style={[styles.button, styles.half, styles.warn]} accessibilityRole="button">
@@ -261,6 +268,7 @@ const styles = StyleSheet.create({
   plan: { backgroundColor: colors.orange },
   planText: { color: colors.ink, fontSize: 16, fontWeight: '700' },
   half: { flex: 1 },
+  wide: { flex: 1.6 },
   warn: { backgroundColor: colors.orangeDark },
   hazard: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, borderColor: colors.cream, alignItems: 'center', justifyContent: 'center' },
   hazardText: { color: colors.cream, fontWeight: '800', fontSize: 15 },

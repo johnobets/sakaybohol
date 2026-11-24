@@ -2,6 +2,7 @@ import type { Session } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
 
 import { supabase } from './lib/supabase'
+import { FaresPage } from './FaresPage'
 import { LivePage } from './LivePage'
 import { Login } from './Login'
 import { ReportsPage } from './ReportsPage'
@@ -10,13 +11,14 @@ import { SetPassword } from './SetPassword'
 import { VehiclesPage } from './VehiclesPage'
 
 type Role = 'commuter' | 'crew' | 'staff' | 'admin'
-type Screen = 'live' | 'routes' | 'vehicles' | 'reports'
+type Screen = 'live' | 'routes' | 'vehicles' | 'reports' | 'fares'
 
 const SCREENS: { id: Screen | null; name: string }[] = [
   { id: 'live', name: 'Live map' },
   { id: 'routes', name: 'Routes' },
   { id: 'vehicles', name: 'Vehicles and crew' },
   { id: 'reports', name: 'Reports' },
+  { id: 'fares', name: 'Tricycle fares' },
   { id: null, name: 'Analytics' }, // Sprint 6
 ]
 
@@ -98,6 +100,7 @@ export default function App() {
         {screen === 'routes' && <RoutesPage canEdit={role === 'admin'} />}
         {screen === 'vehicles' && <VehiclesPage canEdit={role === 'admin'} />}
         {screen === 'reports' && <ReportsPage canEdit={role === 'admin'} />}
+        {screen === 'fares' && <FaresPage canEdit={role === 'admin'} />}
       </main>
     </div>
   )
