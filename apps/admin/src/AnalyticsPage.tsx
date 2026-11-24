@@ -50,7 +50,8 @@ export function AnalyticsPage() {
           ))}
         </div>
       </div>
-      {error ? <p className="error">{error}</p> : null}
+      {error ? <p className="error" role="alert">{error}</p> : null}
+      {!data && !error ? <p className="muted" aria-busy="true">Loading analytics…</p> : null}
       {data ? (
         <>
           <div className="tiles">

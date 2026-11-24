@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { routeColor } from './lib/data'
 import { supabase } from './lib/supabase'
+import { toast } from './lib/toast'
 import { TableWrap } from './TableWrap'
 
 type Route = {
@@ -35,6 +36,7 @@ export function RoutesPage({ canEdit }: { canEdit: boolean }) {
   async function update(id: string, change: Partial<Route>) {
     const { error } = await supabase.from('routes').update(change).eq('id', id)
     setError(error ? 'Could not save. Only admins can change routes.' : null)
+    if (!error) toast('Route saved.')
     load()
   }
 

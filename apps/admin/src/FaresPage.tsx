@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 
 import { supabase } from './lib/supabase'
+import { toast } from './lib/toast'
+import { useConfirm } from './lib/useConfirm'
 import { TableWrap } from './TableWrap'
 
 type Rule = { id: string; lgu: string; base_fare: number; base_km: number; per_km: number; effective_date: string }
@@ -53,13 +55,24 @@ export function FaresPage({ canEdit }: { canEdit: boolean }) {
       effective_date: form.effective_date,
     })
     setError(error ? 'Could not save the fare. Only admins can change it.' : null)
-    if (!error) setForm({ ...form, base_fare: '', base_km: '', per_km: '' })
+    if (!error) {
+      setForm({ ...form, base_fare: '', base_km: '', per_km: '' })
+      toast(`New fare saved. It takes effect on ${form.effective_date}.`)
+    }
     load()
   }
 
+  const [dialog, confirm] = useConfirm()
+
   async function decide(id: string, status: Complaint['status']) {
+    if (
+      status === 'rejected' &&
+      !(await confirm({ title: 'Reject this overcharge report?', body: 'The commuter’s report will be closed as not valid. This cannot be undone.', confirm: 'Reject report', danger: true }))
+    )
+      return
     const { error } = await supabase.from('fare_complaints').update({ status }).eq('id', id)
     setError(error ? 'Could not save. Only admins can review complaints.' : null)
+    if (!error) toast(status === 'approved' ? 'Marked as a valid overcharge.' : status === 'resolved' ? 'Marked as acted on.' : 'Report rejected.')
     load()
   }
 
@@ -143,6 +156,7 @@ export function FaresPage({ canEdit }: { canEdit: boolean }) {
           <button className="primary">Save fare</button>
         </form>
       ) : null}
+      {dialog}
     </>
   )
 }

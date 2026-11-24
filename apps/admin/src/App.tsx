@@ -2,6 +2,9 @@ import type { Session } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
 
 import { supabase } from './lib/supabase'
+import { Toaster } from './lib/toast'
+import { NavIcon } from './NavIcon'
+import { UsersPage } from './UsersPage'
 import { AnalyticsPage } from './AnalyticsPage'
 import { FaresPage } from './FaresPage'
 import { LivePage } from './LivePage'
@@ -12,15 +15,16 @@ import { SetPassword } from './SetPassword'
 import { VehiclesPage } from './VehiclesPage'
 
 type Role = 'commuter' | 'crew' | 'staff' | 'admin'
-type Screen = 'live' | 'routes' | 'vehicles' | 'reports' | 'fares' | 'analytics'
+type Screen = 'live' | 'routes' | 'vehicles' | 'reports' | 'fares' | 'analytics' | 'users'
 
-const SCREENS: { id: Screen | null; name: string }[] = [
+const SCREENS: { id: Screen; name: string }[] = [
   { id: 'live', name: 'Live map' },
   { id: 'routes', name: 'Routes' },
   { id: 'vehicles', name: 'Vehicles and crew' },
   { id: 'reports', name: 'Reports' },
   { id: 'fares', name: 'Tricycle fares' },
   { id: 'analytics', name: 'Analytics' },
+  { id: 'users', name: 'Users' },
 ]
 
 export default function App() {
@@ -79,13 +83,8 @@ export default function App() {
           <span>SakayBohol</span>
         </div>
         {SCREENS.map((s) => (
-          <button
-            key={s.name}
-            className="nav-item"
-            aria-current={s.id === screen ? 'page' : undefined}
-            disabled={!s.id}
-            title={s.id ? undefined : 'Coming in a later sprint'}
-            onClick={() => s.id && setScreen(s.id)}>
+          <button key={s.id} className="nav-item" aria-current={s.id === screen ? 'page' : undefined} onClick={() => setScreen(s.id)}>
+            <NavIcon name={s.id} />
             {s.name}
           </button>
         ))}
@@ -103,7 +102,9 @@ export default function App() {
         {screen === 'reports' && <ReportsPage canEdit={role === 'admin'} />}
         {screen === 'fares' && <FaresPage canEdit={role === 'admin'} />}
         {screen === 'analytics' && <AnalyticsPage />}
+        {screen === 'users' && <UsersPage canEdit={role === 'admin'} myId={session.user.id} />}
       </main>
+      <Toaster />
     </div>
   )
 }

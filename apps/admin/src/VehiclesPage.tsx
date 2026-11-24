@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 
 import { supabase } from './lib/supabase'
+import { toast } from './lib/toast'
 import { TableWrap } from './TableWrap'
 
 type Vehicle = { id: string; plate_no: string; type: 'bus' | 'van'; capacity: number; operator_name: string | null; assigned_crew_id: string | null; active: boolean }
@@ -31,6 +32,7 @@ export function VehiclesPage({ canEdit }: { canEdit: boolean }) {
   async function update(id: string, change: Partial<Vehicle>) {
     const { error } = await supabase.from('vehicles').update(change).eq('id', id)
     setError(error ? 'Could not save. Only admins can change vehicles.' : null)
+    if (!error) toast('Vehicle saved.')
     load()
   }
 
@@ -52,6 +54,7 @@ export function VehiclesPage({ canEdit }: { canEdit: boolean }) {
       return
     }
     setError(null)
+    toast(`${form.plate_no.trim().toUpperCase()} added.`)
     setForm({ plate_no: '', type: 'van', capacity: '14', operator_name: '' })
     load()
   }
@@ -138,7 +141,7 @@ export function VehiclesPage({ canEdit }: { canEdit: boolean }) {
           <button className="primary">Add vehicle</button>
         </form>
       ) : null}
-      <p className="muted">To make someone crew, create their account in Supabase, then set their role to crew. A Users screen comes in a later sprint.</p>
+      <p className="muted">To add crew, have them create an account in the SakayBohol app, then set their role to Crew on the Users screen.</p>
     </>
   )
 }

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { supabase } from './lib/supabase'
+import { toast } from './lib/toast'
+import { useConfirm } from './lib/useConfirm'
 import { TableWrap } from './TableWrap'
 
 type Incident = {
@@ -41,11 +43,27 @@ export function ReportsPage({ canEdit }: { canEdit: boolean }) {
     return () => clearInterval(timer)
   }, [load])
 
+  const [dialog, confirm] = useConfirm()
+
   async function decide(i: Incident, status: Incident['status']) {
+    const label = TYPE_LABEL[i.type] ?? i.type
+    if (
+      status === 'rejected' &&
+      !(await confirm({ title: `Reject this ${label.toLowerCase()} report?`, body: 'It will not appear on commuters’ maps. This cannot be undone.', confirm: 'Reject report', danger: true }))
+    )
+      return
     const change: Partial<Incident> = { status }
     if (status === 'approved') change.expires_at = new Date(Date.now() + SHOW_HOURS * 3_600_000).toISOString()
     const { error } = await supabase.from('incidents').update(change).eq('id', i.id)
     setError(error ? 'Could not save. Only admins can review reports.' : null)
+    if (!error)
+      toast(
+        status === 'approved'
+          ? `${label} is on commuters’ maps for ${SHOW_HOURS} hours.`
+          : status === 'resolved'
+            ? `${label} marked cleared and removed from the map.`
+            : `${label} report rejected.`,
+      )
     load()
   }
 
@@ -101,6 +119,7 @@ export function ReportsPage({ canEdit }: { canEdit: boolean }) {
       {pending.length ? table(pending, 'Reports waiting for review') : <p className="muted">No new reports.</p>}
       <h2>Recently handled</h2>
       {handled.length ? table(handled, 'Recently handled reports') : <p className="muted">Nothing yet.</p>}
+      {dialog}
     </>
   )
 }
