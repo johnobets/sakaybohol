@@ -150,6 +150,18 @@ function CrewHome({ userId }: { userId: string }) {
     load();
   }, [load]);
 
+  // Commuters who tapped "I'm waiting" ahead on this route, checked every 30 s.
+  const [waiting, setWaiting] = useState<{ waiting: number; nearest_m: number | null } | null>(null);
+  const tripId = trip?.id;
+  useEffect(() => {
+    if (!tripId) return setWaiting(null);
+    const load = () =>
+      supabase.rpc('waiting_ahead', { p_trip: tripId }).then(({ data }) => setWaiting(data?.[0] ?? null));
+    load();
+    const timer = setInterval(load, 30_000);
+    return () => clearInterval(timer);
+  }, [tripId]);
+
   async function startTrip() {
     if (!vehicle || !routeId) return;
     setBusy(true);
@@ -234,6 +246,12 @@ function CrewHome({ userId }: { userId: string }) {
             <Text style={styles.gpsText}>{GPS_LABEL[gps.status]}</Text>
           </View>
           <Text style={styles.hintDark}>Keep this screen open while driving.</Text>
+          {waiting && waiting.waiting > 0 ? (
+            <Text style={styles.waiting}>
+              {waiting.waiting} {waiting.waiting === 1 ? 'person' : 'people'} waiting ahead · nearest in{' '}
+              {waiting.nearest_m != null && waiting.nearest_m >= 1000 ? `${(waiting.nearest_m / 1000).toFixed(1)} km` : `${waiting.nearest_m ?? 0} m`}
+            </Text>
+          ) : null}
 
           <View style={styles.counter}>
             <Text style={styles.seatsLeft}>{left}</Text>
@@ -330,6 +348,7 @@ const styles = StyleSheet.create({
   gpsDotLive: { backgroundColor: '#2E8B57' },
   gpsText: { flex: 1, fontSize: 15, color: colors.navy },
   hintDark: { fontSize: 13, color: colors.muted },
+  waiting: { fontSize: 16, fontWeight: '700', color: '#2E8B57' },
   signOut: { marginTop: 'auto', paddingVertical: 12, alignItems: 'center' },
   signOutText: { fontSize: 15, color: colors.muted, textDecorationLine: 'underline' },
 });

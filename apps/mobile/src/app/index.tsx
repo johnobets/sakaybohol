@@ -1,5 +1,5 @@
 import * as Location from 'expo-location';
-import { Link } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
@@ -9,7 +9,10 @@ import { fetchHubs, fetchRouteLines, type Hub, type LatLng, type RouteLine } fro
 import { SEAT_LABEL, type SeatStatus } from '@/lib/seats';
 import { BOHOL_REGION, colors } from '@/lib/theme';
 import { formatEta, useArrivals } from '@/lib/useArrivals';
+import { toEwkt } from '@/lib/live';
+import { supabase } from '@/lib/supabase';
 import { useLiveVehicles } from '@/lib/useLiveVehicles';
+import { useSession } from '@/lib/useSession';
 
 type Spot = LatLng & { picked: boolean };
 
@@ -23,6 +26,21 @@ export default function CommuterHome() {
   const live = useLiveVehicles(routes.map((r) => r.id));
   const { arrivals, error: etaError } = useArrivals(spot);
   const colorOf = (routeId: string) => routes.find((r) => r.id === routeId)?.color ?? colors.navy;
+  const session = useSession();
+  const [sentFor, setSentFor] = useState<Record<string, string>>({}); // tripId -> what was sent
+
+  // "I'm waiting" puts a signal at the pickup point for 30 minutes; "It's full" counts toward 3 reports.
+  async function signal(a: (typeof arrivals)[number], kind: 'waiting' | 'full') {
+    if (!session) return router.push('/account');
+    const { error } =
+      kind === 'waiting'
+        ? await supabase.from('waiting_signals').insert({ user_id: session.user.id, route_id: a.routeId, geom: toEwkt(a.pickup.latitude, a.pickup.longitude) })
+        : await supabase.from('rider_full_reports').insert({ trip_id: a.tripId, user_id: session.user.id });
+    setSentFor((s) => ({
+      ...s,
+      [a.tripId]: error ? (error.code === '23505' ? 'Already reported' : 'Not sent, try again') : kind === 'waiting' ? 'Driver can see you are waiting' : 'Thanks, full report sent',
+    }));
+  }
 
   useEffect(() => {
     Promise.all([fetchRouteLines(), fetchHubs()])
@@ -125,6 +143,18 @@ export default function CommuterHome() {
                   {a.seatsLeft} seats left · {(a.distanceM / 1000).toFixed(1)} km away
                   {a.walkM > 50 ? ` · walk ${Math.round(a.walkM)} m to the road` : ''}
                 </Text>
+                {sentFor[a.tripId] ? (
+                  <Text style={styles.sent}>{sentFor[a.tripId]}</Text>
+                ) : (
+                  <View style={styles.signalRow}>
+                    <Pressable style={styles.chip} onPress={() => signal(a, 'waiting')} accessibilityRole="button">
+                      <Text style={styles.chipText}>I'm waiting</Text>
+                    </Pressable>
+                    <Pressable style={styles.chip} onPress={() => signal(a, 'full')} accessibilityRole="button">
+                      <Text style={styles.chipText}>It's full</Text>
+                    </Pressable>
+                  </View>
+                )}
               </View>
             </View>
           ))}
@@ -187,6 +217,10 @@ const styles = StyleSheet.create({
   vanText: { color: colors.cream, fontSize: 14, fontWeight: '700' },
   button: { marginTop: 8, padding: 14, borderRadius: 12, backgroundColor: colors.navy, alignItems: 'center' },
   actions: { flexDirection: 'row', gap: 10 },
+  signalRow: { flexDirection: 'row', gap: 8, marginTop: 6 },
+  chip: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 16, borderWidth: 1, borderColor: colors.navy },
+  chipText: { fontSize: 13, color: colors.navy, fontWeight: '600' },
+  sent: { marginTop: 6, fontSize: 13, color: '#2E8B57', fontWeight: '600' },
   plan: { backgroundColor: colors.orange },
   planText: { color: colors.ink, fontSize: 16, fontWeight: '700' },
   half: { flex: 1 },
