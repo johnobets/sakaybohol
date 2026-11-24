@@ -5,6 +5,7 @@ import { supabase } from './lib/supabase'
 export function Login({ notice }: { notice?: string }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [show, setShow] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
@@ -40,11 +41,15 @@ export function Login({ notice }: { notice?: string }) {
         {notice ? <p className="error">{notice}</p> : null}
         <label>
           Email
-          <input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <input id="email" name="email" type="email" autoComplete="username" spellCheck={false} enterKeyHint="next" value={email} onChange={(e) => setEmail(e.target.value)} required />
         </label>
         <label>
           Password
-          <input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          <input id="current-password" name="password" type={show ? 'text' : 'password'} autoComplete="current-password" enterKeyHint="done" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        </label>
+        <label className="show-password">
+          <input type="checkbox" checked={show} onChange={(e) => setShow(e.target.checked)} />
+          Show password
         </label>
         {error ? <p className="error">{error}</p> : null}
         {info ? <p className="muted">{info}</p> : null}

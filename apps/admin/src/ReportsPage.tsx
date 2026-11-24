@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { supabase } from './lib/supabase'
+import { TableWrap } from './TableWrap'
 
 type Incident = {
   id: string
@@ -77,13 +78,15 @@ export function ReportsPage({ canEdit }: { canEdit: boolean }) {
     )
   }
 
-  const table = (list: Incident[]) => (
+  const table = (list: Incident[], label: string) => (
+    <TableWrap label={label}>
     <table>
       <thead>
         <tr><th>Photo</th><th>Hazard</th><th>Reported</th><th>Location</th><th>Status</th><th /></tr>
       </thead>
       <tbody>{list.map(row)}</tbody>
     </table>
+    </TableWrap>
   )
 
   return (
@@ -95,9 +98,9 @@ export function ReportsPage({ canEdit }: { canEdit: boolean }) {
       {error ? <p className="error">{error}</p> : null}
       <p className="muted">Approved hazards show on commuters' maps for {SHOW_HOURS} hours, or until marked cleared.</p>
       <h2>Waiting for review</h2>
-      {pending.length ? table(pending) : <p className="muted">No new reports.</p>}
+      {pending.length ? table(pending, 'Reports waiting for review') : <p className="muted">No new reports.</p>}
       <h2>Recently handled</h2>
-      {handled.length ? table(handled) : <p className="muted">Nothing yet.</p>}
+      {handled.length ? table(handled, 'Recently handled reports') : <p className="muted">Nothing yet.</p>}
     </>
   )
 }

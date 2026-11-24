@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 
 import { supabase } from './lib/supabase'
+import { TableWrap } from './TableWrap'
 
 type Vehicle = { id: string; plate_no: string; type: 'bus' | 'van'; capacity: number; operator_name: string | null; assigned_crew_id: string | null; active: boolean }
 type Crew = { id: string; full_name: string | null }
@@ -65,6 +66,8 @@ export function VehiclesPage({ canEdit }: { canEdit: boolean }) {
       </div>
       {error ? <p className="error">{error}</p> : null}
 
+      <TableWrap label="Vehicles">
+
       <table>
         <thead>
           <tr>
@@ -108,6 +111,7 @@ export function VehiclesPage({ canEdit }: { canEdit: boolean }) {
           ))}
         </tbody>
       </table>
+      </TableWrap>
 
       {canEdit ? (
         <form className="inline-form" onSubmit={add}>

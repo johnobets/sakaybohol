@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { supabase } from './lib/supabase'
+import { TableWrap } from './TableWrap'
 
 type Spot = { lat: number; lng: number }
 type Analytics = {
@@ -64,13 +65,16 @@ export function AnalyticsPage() {
           <div className="bars" role="img" aria-label={`Trips per hour; busiest ${peak ? hourLabel(peak.hour) : 'none'}`}>
             {data.by_hour.map((h) => (
               <div key={h.hour} className="bar-col" title={`${hourLabel(h.hour)}: ${h.trips} trips`}>
-                <div className="bar" style={{ height: `calc((100% - 22px) * ${h.trips / max})` }} />
+                <div className="bar-track">
+                  <div className="bar" style={{ height: `${(h.trips / max) * 100}%` }} />
+                </div>
                 <span className="bar-x">{h.hour % 3 === 0 ? hourLabel(h.hour) : ''}</span>
               </div>
             ))}
           </div>
 
           <h2>Routes</h2>
+          <TableWrap label="Routes">
           <table>
             <thead><tr><th>Route</th><th>Trips</th><th>Average trip</th><th>Average speed</th></tr></thead>
             <tbody>
@@ -84,10 +88,12 @@ export function AnalyticsPage() {
               ))}
             </tbody>
           </table>
+          </TableWrap>
 
           <h2>Slow traffic spots</h2>
           <p className="muted">Places where vans moved under 10 km/h most often (about 100 m areas, terminals left out).</p>
           {data.congestion.length ? (
+            <TableWrap label="Slow traffic spots">
             <table>
               <thead><tr><th>Location</th><th>Slow GPS readings</th></tr></thead>
               <tbody>
@@ -96,10 +102,12 @@ export function AnalyticsPage() {
                 ))}
               </tbody>
             </table>
+            </TableWrap>
           ) : <p className="muted">No slow traffic recorded yet.</p>}
 
           <h2>Hazard hotspots</h2>
           {data.hazard_spots.length ? (
+            <TableWrap label="Hazard hotspots">
             <table>
               <thead><tr><th>Location</th><th>Approved reports</th><th>Types</th></tr></thead>
               <tbody>
@@ -108,6 +116,7 @@ export function AnalyticsPage() {
                 ))}
               </tbody>
             </table>
+            </TableWrap>
           ) : <p className="muted">No approved hazard reports in this period.</p>}
         </>
       ) : null}

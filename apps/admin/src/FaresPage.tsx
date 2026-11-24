@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 
 import { supabase } from './lib/supabase'
+import { TableWrap } from './TableWrap'
 
 type Rule = { id: string; lgu: string; base_fare: number; base_km: number; per_km: number; effective_date: string }
 type Complaint = {
@@ -82,6 +83,7 @@ export function FaresPage({ canEdit }: { canEdit: boolean }) {
 
       <h2>Overcharge reports</h2>
       {items.length ? (
+        <TableWrap label="Overcharge reports">
         <table>
           <thead>
             <tr><th>Reported</th><th>Paid</th><th>Fare</th><th>Tricycle</th><th>Trip</th><th>Status</th><th /></tr>
@@ -108,11 +110,13 @@ export function FaresPage({ canEdit }: { canEdit: boolean }) {
             ))}
           </tbody>
         </table>
+        </TableWrap>
       ) : (
         <p className="muted">No reports yet.</p>
       )}
 
       <h2>Fare history</h2>
+      <TableWrap label="Fare history">
       <table>
         <thead>
           <tr><th>Effective</th><th>Base fare</th><th>Covers</th><th>Per extra km</th></tr>
@@ -128,6 +132,7 @@ export function FaresPage({ canEdit }: { canEdit: boolean }) {
           ))}
         </tbody>
       </table>
+      </TableWrap>
       {canEdit ? (
         <form className="inline-form" onSubmit={addRule}>
           <h2>New fare (from the city ordinance)</h2>

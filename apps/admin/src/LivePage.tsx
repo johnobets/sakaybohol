@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { fetchHubs, fetchRouteLines, routeColor, timeOf, useLiveVans, type Hub, type RouteLine } from './lib/data'
 import { supabase } from './lib/supabase'
+import { TableWrap } from './TableWrap'
 import { LiveMap } from './LiveMap'
 
 type ActiveTrip = {
@@ -78,6 +79,7 @@ export function LivePage() {
       {trips.length === 0 ? (
         <p className="muted">No vehicles are on a trip right now.</p>
       ) : (
+        <TableWrap label="Active trips">
         <table>
           <thead>
             <tr>
@@ -112,6 +114,7 @@ export function LivePage() {
             ))}
           </tbody>
         </table>
+        </TableWrap>
       )}
     </>
   )

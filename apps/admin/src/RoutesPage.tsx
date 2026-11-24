@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { routeColor } from './lib/data'
 import { supabase } from './lib/supabase'
+import { TableWrap } from './TableWrap'
 
 type Route = {
   id: string
@@ -44,6 +45,7 @@ export function RoutesPage({ canEdit }: { canEdit: boolean }) {
         <span className="stat">{routes.filter((r) => r.active).length} of {routes.length} active</span>
       </div>
       {error ? <p className="error">{error}</p> : null}
+      <TableWrap label="Routes">
       <table>
         <thead>
           <tr>
@@ -96,6 +98,7 @@ export function RoutesPage({ canEdit }: { canEdit: boolean }) {
           ))}
         </tbody>
       </table>
+      </TableWrap>
       <p className="muted">Route lines are approximate (OpenStreetMap) until replaced by ride-along GPS. A route needs a line before it can be shown.</p>
     </>
   )
