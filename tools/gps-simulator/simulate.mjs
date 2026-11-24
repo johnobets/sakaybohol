@@ -80,9 +80,26 @@ async function run(code, { inbound, speedKmh }) {
   const { data: trip, error: tErr } = await sb.from('trips').insert({ route_id: route.id, vehicle_id: vehicle.id, crew_id: crewId, direction }).select('id').single();
   if (tErr) throw new Error(tErr.code === '23505' ? `${vehicle.plate_no} already has an active trip. End it in the crew app first.` : tErr.message);
 
+  // Join after the trip exists: Realtime checks the "crew broadcasts own route" policy when joining.
+  // The first join of the day can fail once (Realtime creates its daily partition); the client
+  // retries on its own, so wait for SUBSCRIBED instead of giving up on the first CHANNEL_ERROR.
   await sb.realtime.setAuth();
   const channel = sb.channel(`route:${route.id}`, { config: { private: true } });
-  await new Promise((ok, fail) => channel.subscribe((s) => (s === 'SUBSCRIBED' ? ok() : s === 'CHANNEL_ERROR' && fail(new Error('Realtime channel error')))));
+  try {
+    await new Promise((ok, fail) => {
+      const timer = setTimeout(() => fail(new Error('Realtime did not connect within 30 s.')), 30_000);
+      channel.subscribe((s) => {
+        if (s === 'SUBSCRIBED') {
+          clearTimeout(timer);
+          ok();
+        }
+      });
+    });
+  } catch (e) {
+    await sb.from('trips').update({ status: 'ended', ended_at: new Date().toISOString() }).eq('id', trip.id);
+    await sb.removeChannel(channel);
+    throw e;
+  }
 
   let seatsTaken = 0;
   let ended = false;
